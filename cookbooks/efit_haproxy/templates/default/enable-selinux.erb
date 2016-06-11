@@ -1,0 +1,29 @@
+#!/bin/bash
+if [ -f /tmp/count.log ]; then
+        value="$(cat /tmp/count.log)"
+        value=$((value + 1))
+        if [[ $value == 1 ]] || [[ ! -f /zabbix_agent.pp ]]; then
+                service zabbix-agent restart
+                cd /
+                grep zabbix_agent /var/log/audit/audit.log | audit2allow -M zabbix_agent
+                semodule -i zabbix_agent.pp
+                cd /root
+				grep zabbix_agentd /var/log/audit/audit.log | audit2allow -M zabbix_agentd_docker
+                semodule -i zabbix_agentd_docker.pp
+                service zabbix-agent restart
+
+        else
+            exit 0        
+        fi
+        echo $value > /tmp/count.log
+else
+        echo "0" > /tmp/count.log
+        service zabbix-agent restart
+        cd /
+        grep zabbix_agent /var/log/audit/audit.log | audit2allow -M zabbix_agent
+        semodule -i zabbix_agent.pp
+        cd /root
+grep zabbix_agentd /var/log/audit/audit.log | audit2allow -M zabbix_agentd_docker
+        semodule -i zabbix_agentd_docker.pp
+        service zabbix-agent restart
+fi
