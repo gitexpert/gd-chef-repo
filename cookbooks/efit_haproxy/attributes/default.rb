@@ -6,8 +6,12 @@ default['efit_haproxy']['haproxy_dir']= "/opt/haproxy-bridge"
 default['efit_haproxy']['haproxy_cert_dir']= "/etc/ssl/private"
 default['efit_haproxy']['haproxy_listen_port']= "5000"
 
-
 default['efit_haproxy_prod']['shipyard']['user']="proddadmin"
 default['efit_haproxy_prod']['shipyard']['password']="shipyardadminpass"
 default['efit_haproxy_dev']['shipyard']['user']="devadmin"
 default['efit_haproxy_dev']['shipyard']['password']="shipyardadminpass"
+
+default['efit_haproxy']['haproxy_frontend_http_port']="80"
+default['efit_haproxy']['haproxy_frontend_https_port']="443"
+
+default['efit_haproxy']['haproxy_backend_docker_port']="11720"

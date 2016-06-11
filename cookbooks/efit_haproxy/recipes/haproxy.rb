@@ -15,6 +15,9 @@ haproxy_502_error = "#{node['efit_haproxy']['haproxy_errors']}/502.http"
 haproxy_503_error = "#{node['efit_haproxy']['haproxy_errors']}/503.http"
 haproxy_504_error = "#{node['efit_haproxy']['haproxy_errors']}/504.http"
 haproxy_bridge = "#{node['efit_haproxy']['haproxy_dir']}/haproxy-bridge"
+haproxy_frontend_http_port = "#{node['efit_haproxy']['haproxy_frontend_http_port']}"
+haproxy_frontend_https_port = "#{node['efit_haproxy']['haproxy_frontend_https_port']}"
+haproxy_backend_docker_port = "#{node['efit_haproxy']['haproxy_backend_docker_port']}"
 
 
 # Install/Upgrade Haproxy
@@ -56,7 +59,10 @@ template haproxy_config do
   mode "0600"
 
   variables({
-    backend_nodes: search(:node, "chef_environment:#{node.chef_environment} AND role:efit_docker").sort_by{ |n| n.name }
+    backend_nodes: search(:node, "chef_environment:#{node.chef_environment} AND role:efit_docker").sort_by{ |n| n.name },
+    :haproxy_frontend_http_port => haproxy_frontend_http_port,
+    :haproxy_frontend_https_port => haproxy_frontend_https_port,
+    :haproxy_backend_docker_port => haproxy_backend_docker_port
   })
   notifies :reload, 'service[haproxy]'
 

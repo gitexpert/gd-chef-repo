@@ -29,8 +29,8 @@ defaults
     timeout server  50000
 
 frontend CapitalOne
-    bind *:80
-    bind *:443 ssl crt /etc/ssl/private/haproxy.pem
+    bind *:<%= @haproxy_frontend_http_port %>
+    bind *:<%= @haproxy_frontend_https_port %> ssl crt /etc/ssl/private/haproxy.pem
     mode http
     option httplog
     #acl secure dst_port eq 443
@@ -46,7 +46,7 @@ backend docker-pivr
     #http-request add-header X-Forwarded-Proto https if { ssl_fc }
     option tcp-check
     <% @backend_nodes.each do |node| %>
-    server <%= node.name %> <%= node.ipaddress %>:11720 check port 11720 
+    server <%= node.name %> <%= node.ipaddress %>:<%= @haproxy_backend_docker_port %> check port <%= @haproxy_backend_docker_port %> 
     <% end %>
 
     mode http
