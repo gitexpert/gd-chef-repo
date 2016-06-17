@@ -125,7 +125,7 @@ script "Generate Device SSL Certificate" do
     openssl pkcs12 -in /tmp/tempstore.p12 -out /tmp/rootca-key.pem -passin pass:efitrtm -passout pass:efitrtm;
 
     openssl genrsa -out /tmp/haproxy-device.key 2048;
-    openssl req -new -key /tmp/haproxy-device.key -out /tmp/haproxy.csr -subj "/CN=haproxy.com/" -batch;
+    openssl req -new -key /tmp/haproxy-device.key -out /tmp/haproxy.csr -subj "/CN="#{node['efit_haproxy']['haproxy_cert_env_domain']}"/" -batch;
 
     openssl x509 -req -in /tmp/haproxy.csr -CA /tmp/rootca-key.pem -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256
     EOH
