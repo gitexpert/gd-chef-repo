@@ -119,9 +119,15 @@ end
 # Generate Device SSL Certificate for HAProxy Server
 script "Generate Device SSL Certificate" do
   interpreter "bash"
-  cwd ::File.dirname("/tmp")
+  cwd ::File.dirname("#{Chef::Config['cookbook_path']}/efit_haproxy/files/default/")
   code <<-EOH
-   keytool -importkeystore -srckeystore efitpayment-rtmid.jks -destkeystore tempstore.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass efitrtm -deststorepass efitrtm -srcalias efitpayment-rtm -destalias efitpayment-rtm -srckeypass efitrtm -destkeypass efitrtm -noprompt 
+    keytool -importkeystore -srckeystore ./default/efitpayment-rtmid.jks -destkeystore /tmp/tempstore.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass efitrtm -deststorepass efitrtm -srcalias efitpayment-rtm -destalias efitpayment-rtm -srckeypass efitrtm -destkeypass efitrtm -noprompt ;
+    openssl pkcs12 -in /tmp/tempstore.p12 -out /tmp/rootca-key.pem -passin pass:efitrtm -passout pass:efitrtm;
+
+    openssl genrsa -out /tmp/haproxy-device.key 2048;
+    openssl req -new -key /tmp/haproxy-device.key -out /tmp/haproxy.csr -subj "/CN=haproxy.com/" -batch;
+
+    openssl x509 -req -in /tmp/haproxy.csr -CA /tmp/rootca-key.pem -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256
     EOH
 end
 

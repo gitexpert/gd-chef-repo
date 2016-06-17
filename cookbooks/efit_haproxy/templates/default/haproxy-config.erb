@@ -30,7 +30,7 @@ defaults
 
 frontend CapitalOne
     bind *:<%= @haproxy_frontend_http_port %>
-    bind *:<%= @haproxy_frontend_https_port %> ssl crt /etc/ssl/private/haproxy.pem
+    bind *:<%= @haproxy_frontend_https_port %> ssl crt /etc/ssl/private/haproxy.pem ca-file /etc/ssl/private/rootcacert.pem verify required
     mode http
     option httplog
     #acl secure dst_port eq 443
