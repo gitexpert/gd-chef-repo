@@ -15,3 +15,10 @@ default['efit_haproxy']['haproxy_frontend_http_port']="80"
 default['efit_haproxy']['haproxy_frontend_https_port']="443"
 
 default['efit_haproxy']['haproxy_backend_docker_port']="11720"
+
+# SSL Certificate Credentials and Attributes
+default['efit_haproxy']['java_keystore_file']="efitpayment-rtmid.jks"
+default['efit_haproxy']['java_keystore_alias']="efitpayment-rtm"
+default['efit_haproxy']['java_keystore_storepass']="efitrtm"
+default['efit_haproxy']['rootcacert_file']="rootcacert.pem"
+default['efit_haproxy']['rootcacert_keypass']="efitrtm"

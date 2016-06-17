@@ -116,6 +116,15 @@ execute "Set SELinux Context for Journal Path" do
   not_if "semodule -l | grep permissive | grep haproxy_t 2>/dev/null 2>/dev/null"
 end
 
+# Generate Device SSL Certificate for HAProxy Server
+script "Generate Device SSL Certificate" do
+  interpreter "bash"
+  cwd ::File.dirname("/tmp")
+  code <<-EOH
+   keytool -importkeystore -srckeystore efitpayment-rtmid.jks -destkeystore tempstore.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass efitrtm -deststorepass efitrtm -srcalias efitpayment-rtm -destalias efitpayment-rtm -srckeypass efitrtm -destkeypass efitrtm -noprompt 
+    EOH
+end
+
 
 # Start the Haproxy service
 service "haproxy" do
