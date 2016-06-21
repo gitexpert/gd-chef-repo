@@ -5,7 +5,7 @@
 # Copyright (c) 2015 The Authors, All Rights Reserved.
 
 haproxy_config    = "#{node['efit_haproxy']['haproxy_config_dir']}/haproxy.cfg"
-haproxy_cert_file = "#{node['efit_haproxy']['haproxy_cert_dir']}/haproxy.pem"
+rootcacert_file = "#{node['efit_haproxy']['haproxy_cert_dir']}/rootcacert.pem"
 haproxy_400_error = "#{node['efit_haproxy']['haproxy_errors']}/400.http"
 haproxy_401_error = "#{node['efit_haproxy']['haproxy_errors']}/401.http"
 haproxy_403_error = "#{node['efit_haproxy']['haproxy_errors']}/403.http"
@@ -47,7 +47,7 @@ directory node['efit_haproxy']['haproxy_cert_dir'] do
 end
 
 #Create Haproxy SSL certificate  File
-cookbook_file haproxy_cert_file do
+cookbook_file rootcacert_file do
   source 'rootcacert.pem'
   mode '00600'
   action :create_if_missing
@@ -121,13 +121,15 @@ script "Generate Device SSL Certificate" do
   interpreter "bash"
   cwd ::File.dirname("#{Chef::Config['cookbook_path']}/efit_haproxy/files/default/")
   code <<-EOH
-    keytool -importkeystore -srckeystore ./default/efitpayment-rtmid.jks -destkeystore /tmp/tempstore.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass efitrtm -deststorepass efitrtm -srcalias efitpayment-rtm -destalias efitpayment-rtm -srckeypass efitrtm -destkeypass efitrtm -noprompt ;
-    openssl pkcs12 -in /tmp/tempstore.p12 -out /tmp/rootca-key.pem -passin pass:efitrtm -passout pass:efitrtm;
+#    keytool -importkeystore -srckeystore ./default/efitpayment-rtmid.jks -destkeystore /tmp/tempstore.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass efitrtm -deststorepass efitrtm -srcalias efitpayment-rtm -destalias efitpayment-rtm -srckeypass efitrtm -destkeypass efitrtm -noprompt ;
+#    openssl pkcs12 -in /tmp/tempstore.p12 -out /tmp/rootca-key.pem -passin pass:efitrtm -passout pass:efitrtm;
 
-    openssl genrsa -out /tmp/haproxy-device.key 2048;
-    openssl req -new -key /tmp/haproxy-device.key -out /tmp/haproxy.csr -subj "/CN="#{node['efit_haproxy']['haproxy_cert_env_domain']}"/" -batch;
+    openssl genrsa -out ./default/haproxy-device.key 2048;
+    openssl req -new -key ./default/haproxy-device.key -out ./default/haproxy.csr -subj "/CN="#{node[node.chef_environment]['haproxy_cert_env_domain']}"/" -batch;
 
-    openssl x509 -req -in /tmp/haproxy.csr -CA /tmp/rootca-key.pem -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256
+    rm -f /etc/ssl/private/haproxy.pem;
+    openssl x509 -req -in ./default/haproxy.csr -CA ./default/rootca-key.pem -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256;
+    cat ./default/haproxy-device.key >> /etc/ssl/private/haproxy.pem;
     EOH
 end
 
