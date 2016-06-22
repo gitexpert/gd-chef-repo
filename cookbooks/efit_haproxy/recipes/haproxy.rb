@@ -116,6 +116,12 @@ execute "Set SELinux Context for Journal Path" do
   not_if "semodule -l | grep permissive | grep haproxy_t 2>/dev/null 2>/dev/null"
 end
 
+if node.chef_environment == 'efit_prd'
+    rootcacert_file = 'rootcacert-prod.pem'
+else
+    rootcacert_file = 'rootcacert-qa.pem'
+end
+
 # Generate Device SSL Certificate for HAProxy Server
 script "Generate Device SSL Certificate" do
   interpreter "bash"
@@ -128,7 +134,7 @@ script "Generate Device SSL Certificate" do
     openssl req -new -key ./default/haproxy-device.key -out ./default/haproxy.csr -subj "/CN="#{node[node.chef_environment]['haproxy_cert_env_domain']}"/" -batch;
 
     rm -f /etc/ssl/private/haproxy.pem;
-    openssl x509 -req -in ./default/haproxy.csr -CA ./default/rootca-key.pem -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256;
+    openssl x509 -req -in ./default/haproxy.csr -CA ./default/"#{rootcacert_file}" -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256;
     cat ./default/haproxy-device.key >> /etc/ssl/private/haproxy.pem;
     EOH
 end
