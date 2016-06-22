@@ -136,6 +136,7 @@ script "Generate Device SSL Certificate" do
     rm -f /etc/ssl/private/haproxy.pem;
     openssl x509 -req -in ./default/haproxy.csr -CA ./default/"#{rootcacert_file}" -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256;
     cat ./default/haproxy-device.key >> /etc/ssl/private/haproxy.pem;
+    echo "#{rootcacert_file}" > /tmp/xx;
     EOH
 end
 
