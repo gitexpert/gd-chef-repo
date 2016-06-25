@@ -48,8 +48,8 @@ backend docker-pivr
     #http-request set-header X-Forwarded-Port %[dst_port]
     #http-request add-header X-Forwarded-Proto https if { ssl_fc }
     option tcp-check
-    <% @backend_nodes.each do |node| %>
-    server <%= node.name %> <%= node.ipaddress %>:<%= @haproxy_backend_docker_port %> check port <%= @haproxy_backend_docker_port %> 
+    <% @backend_nodes.each_with_index do |node, index| %>
+    server web-server-<%= index %> <%= node.ipaddress %>:<%= @haproxy_backend_docker_port %> check port <%= @haproxy_backend_docker_port %> 
     <% end %>
 
     mode http
