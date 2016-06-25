@@ -5,8 +5,8 @@ global
     chroot /var/lib/haproxy
     #stats socket /run/haproxy/admin.sock mode 660 level admin
     stats timeout 30s
-    user haproxy
-    group haproxy
+    user  <%= @user %>
+    group <%= @group %>
     daemon
 
    #Default SSL material locations
@@ -24,21 +24,24 @@ defaults
     option  dontlognull
     option  forwardfor
     #http-reuse always
-    timeout connect 5000
-    timeout client  50000
-    timeout server  50000
+    timeout connect <%= @haproxy_timeouts_connect %>
+    timeout client  <%= @haproxy_timeouts_client %>
+    timeout server  <%= @haproxy_timeouts_server %>
 
 frontend CapitalOne
     bind *:<%= @haproxy_frontend_http_port %>
-    bind *:<%= @haproxy_frontend_https_port %> ssl crt /etc/ssl/private/haproxy.pem ca-file /etc/ssl/private/rootcacert.pem verify required
+    bind *:<%= @haproxy_frontend_https_port %> ssl crt /etc/ssl/private/haproxy.pem ca-file /etc/ssl/private/rootcacert.pem
+    # bind *:<%= @haproxy_frontend_https_port %> ssl crt /etc/ssl/private/efit-pivrapigw.pem ca-file /etc/ssl/private/rootcacert.pem
     mode http
     option httplog
     #acl secure dst_port eq 443
     #redirect scheme https if !{ ssl_fc }
     #rspadd Strict-Transport-Security:\ max-age=31536000;\ includeSubDomains;\ preload
     #rsprep ^Set-Cookie:\ (.*) Set-Cookie:\ \1;\ Secure if secure
-    acl url_pivr path_beg /partnerships
+    acl url_pivr path_beg <%= @acl_url_pivr_path_beg %>
+    acl url_pivr_health path_beg <%= @acl_url_pivr_health_path_beg %>
     use_backend docker-pivr if url_pivr
+    use_backend docker-pivr if url_pivr_health
 
 backend docker-pivr
     balance roundrobin
@@ -52,9 +55,9 @@ backend docker-pivr
     mode http
 
     option httplog
-
+ 
 listen statistics
-    bind *:8443
+    bind *:<%= @haproxy_http_listen_port %>
     mode http
     stats enable
     stats show-desc PIVR-API's HAProxy Status

@@ -4,27 +4,22 @@
 #
 # Copyright (c) 2015 The Authors, All Rights Reserved.
 
-haproxy_config    = "#{node['efit_haproxy']['haproxy_config_dir']}/haproxy.cfg"
-rootcacert_file = "#{node['efit_haproxy']['haproxy_cert_dir']}/rootcacert.pem"
-haproxy_400_error = "#{node['efit_haproxy']['haproxy_errors']}/400.http"
-haproxy_401_error = "#{node['efit_haproxy']['haproxy_errors']}/401.http"
-haproxy_403_error = "#{node['efit_haproxy']['haproxy_errors']}/403.http"
-haproxy_408_error = "#{node['efit_haproxy']['haproxy_errors']}/408.http"
-haproxy_500_error = "#{node['efit_haproxy']['haproxy_errors']}/500.http"
-haproxy_502_error = "#{node['efit_haproxy']['haproxy_errors']}/502.http"
-haproxy_503_error = "#{node['efit_haproxy']['haproxy_errors']}/503.http"
-haproxy_504_error = "#{node['efit_haproxy']['haproxy_errors']}/504.http"
-haproxy_bridge = "#{node['efit_haproxy']['haproxy_dir']}/haproxy-bridge"
-haproxy_frontend_http_port = "#{node['efit_haproxy']['haproxy_frontend_http_port']}"
-haproxy_frontend_https_port = "#{node['efit_haproxy']['haproxy_frontend_https_port']}"
-haproxy_backend_docker_port = "#{node['efit_haproxy']['haproxy_backend_docker_port']}"
 
-
-# Install/Upgrade Haproxy
-package "haproxy" do
-action :upgrade
-end
-
+haproxy_config        = "#{node['efit_haproxy']['haproxy_config_dir']}/haproxy.cfg"
+#haproxy_cert_dir      = "#{node['efit_haproxy']['haproxy_cert_dir']}/haproxy_cert_file"
+#haproxy_cert_file_prod = "#{node['efit_haproxy']['haproxy_cert_dir']}/haproxy_prod.pem"
+haproxy_rootcacert_file  = "#{node['efit_haproxy']['haproxy_cert_dir']}/rootcacert.pem"
+haproxy_devicecert_file = "#{node['efit_haproxy']['haproxy_cert_dir']}/haproxy.pem"
+haproxy_400_error     = "#{node['efit_haproxy']['haproxy_errors']}/400.http"
+haproxy_401_error     = "#{node['efit_haproxy']['haproxy_errors']}/401.http"
+haproxy_403_error     = "#{node['efit_haproxy']['haproxy_errors']}/403.http"
+haproxy_408_error     = "#{node['efit_haproxy']['haproxy_errors']}/408.http"
+haproxy_500_error     = "#{node['efit_haproxy']['haproxy_errors']}/500.http"
+haproxy_502_error     = "#{node['efit_haproxy']['haproxy_errors']}/502.http"
+haproxy_503_error     = "#{node['efit_haproxy']['haproxy_errors']}/503.http"
+haproxy_504_error     = "#{node['efit_haproxy']['haproxy_errors']}/504.http"
+env_name = node['efit_haproxy']['env_name']
+                  
 #Create Haproxy errors directory
 directory node['efit_haproxy']['haproxy_errors'] do
   mode 00755
@@ -46,23 +41,45 @@ directory node['efit_haproxy']['haproxy_cert_dir'] do
   action :create
 end
 
-#Create Haproxy SSL certificate  File
-cookbook_file rootcacert_file do
+cookbook_file haproxy_rootcacert_file do
   source 'rootcacert.pem'
   mode '00600'
-  action :create_if_missing
+  action :create
 end
 
+env_name = env_name.downcase
+if env_name == "prod" then
+  haproxy_cert_file = "haproxy_prod.pem"
+else
+  haproxy_cert_file = "haproxy_devqa.pem"
+end 
+
+cookbook_file haproxy_devicecert_file do
+    source haproxy_cert_file
+    mode '00600'
+    action :create
+end
+ 
 # Configure HAProxy Configuration file
 template haproxy_config do
   source "haproxy-config.erb"
   mode "0600"
 
   variables({
-    backend_nodes: search(:node, "chef_environment:#{node.chef_environment} AND role:efit_docker").sort_by{ |n| n.name },
-    :haproxy_frontend_http_port => haproxy_frontend_http_port,
-    :haproxy_frontend_https_port => haproxy_frontend_https_port,
-    :haproxy_backend_docker_port => haproxy_backend_docker_port
+    backend_nodes: search(:node, "chef_environment:#{node.chef_environment} AND role:efit_shipyard_slave").sort_by{ |n| n.name },
+    :user => node['efit_haproxy']['user'],
+    :group => node['efit_haproxy']['group'],
+    :acl_url_pivr_health_path_beg => node['efit_haproxy']['acl_url_pivr_health_path_beg'],
+    :acl_url_pivr_path_beg => node['efit_haproxy']['acl_url_pivr_path_beg'],
+    :haproxy_frontend_http_port => node['efit_haproxy']['haproxy_frontend_http_port'],
+    :haproxy_frontend_https_port => node['efit_haproxy']['haproxy_frontend_https_port'],
+    :haproxy_backend_docker_port => node['efit_haproxy']['haproxy_backend_docker_port'],
+    :haproxy_http_listen_port => node['efit_haproxy']['haproxy_http_listen_port'],
+    :haproxy_timeouts_connect => node['efit_haproxy']['haproxy_timeouts_connect'],
+    :haproxy_timeouts_client => node['efit_haproxy']['haproxy_timeouts_client'],
+    :haproxy_timeouts_server => node['efit_haproxy']['haproxy_timeouts_server']
+    
+  
   })
   notifies :reload, 'service[haproxy]'
 
@@ -116,35 +133,8 @@ execute "Set SELinux Context for Journal Path" do
   not_if "semodule -l | grep permissive | grep haproxy_t 2>/dev/null 2>/dev/null"
 end
 
-if node.chef_environment == 'efit_prd'
-    rootcacert_file = 'rootcacert-prod.pem'
-else
-    rootcacert_file = 'rootcacert-qa.pem'
-end
-
-# Generate Device SSL Certificate for HAProxy Server
-script "Generate Device SSL Certificate" do
-  interpreter "bash"
-  cwd ::File.dirname("#{Chef::Config['cookbook_path']}/efit_haproxy/files/default/")
-  code <<-EOH
-#    keytool -importkeystore -srckeystore ./default/efitpayment-rtmid.jks -destkeystore /tmp/tempstore.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass efitrtm -deststorepass efitrtm -srcalias efitpayment-rtm -destalias efitpayment-rtm -srckeypass efitrtm -destkeypass efitrtm -noprompt ;
-#    openssl pkcs12 -in /tmp/tempstore.p12 -out /tmp/rootca-key.pem -passin pass:efitrtm -passout pass:efitrtm;
-
-    openssl genrsa -out ./default/haproxy-device.key 2048;
-    openssl req -new -key ./default/haproxy-device.key -out ./default/haproxy.csr -subj "/CN="#{node[node.chef_environment]['haproxy_cert_env_domain']}"/" -batch;
-
-    rm -f /etc/ssl/private/haproxy.pem;
-    openssl x509 -req -in ./default/haproxy.csr -CA ./default/"#{rootcacert_file}" -passin pass:efitrtm -CAcreateserial -out /etc/ssl/private/haproxy.pem -days 500 -sha256;
-    cat ./default/haproxy-device.key >> /etc/ssl/private/haproxy.pem;
-    echo "#{rootcacert_file}" > /tmp/xx;
-    EOH
-end
-
-
 # Start the Haproxy service
 service "haproxy" do
   supports :status => true, :restart => true
   action [ :enable, :start ]
 end
-
-
