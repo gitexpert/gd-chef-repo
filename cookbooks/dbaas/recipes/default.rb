@@ -58,20 +58,19 @@ mongo_limits = node['dbaas']['mongo']['limits']
 service_type = node['dbaas']['service']['type']
 docker_networks = node['dbaas']['docker']['network']
 
-case node['role']
-when 'cassandra'
+if node.role?('cassandra')
 	create_group = cassandra_group
 	create_group_id = cassandra_gid
 	create_user = cassandra_user
 	create_user_id = cassandra_uid
 	create_home = cassandra_home
-when 'elasticsearch'
+elseif node.role?('elasticsearch')
 	create_group = elasticsearch_group
 	create_group_id = elasticsearch_gid
 	create_user = elasticsearch_user
 	create_user_id = elasticsearch_uid
 	create_home = elasticsearch_home
-when 'mongodb'
+elseif node.role?('mongodb')
 	create_group = mongo_group
 	create_group_id = mongo_gid
 	create_user = mongo_user
@@ -729,28 +728,6 @@ mongo_clusters.each do |mongo_cluster, attributes|
     action :nothing
   end
 end unless mongo_clusters.nil?
-
-cookbook : mongo_mongos
-
-
-
-
-#
-# Cookbook Name:: dbaas
-# Recipe:: mongo_mongos
-#
-# Copyright (c) 2016 DreamWorks Animation LLC, All Rights Reserved.
-
-include_recipe "dbaas::mongo"
-
-################
-# Grab data bags
-################
-jenkins_api_key = data_bag_item('dbaas', 'api_keys')['jenkins']
-
-#################
-# Grab attributes
-#################
 
 application = node['dbaas']['mongo_mongos']['application']
 mongo_clusters = node['dbaas']['mongo_mongos']['clusters']
